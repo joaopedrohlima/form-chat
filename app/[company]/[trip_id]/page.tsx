@@ -14,7 +14,7 @@ export default async function TripPage({ params }: { params: Promise<{ company: 
   const tripLocais = roteiro?.locais ? (roteiro.locais as any[]).map(l => l.nome).join(' + ') : undefined;
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
+    <div className="h-dvh bg-slate-50 dark:bg-slate-900 overflow-hidden flex flex-col">
       <ChatForm 
         company={company} 
         tripId={trip_id} 

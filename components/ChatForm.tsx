@@ -133,7 +133,7 @@ export function ChatForm({
 
   if (isSuccess) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen p-6 text-center">
+      <div className="flex flex-col items-center justify-center h-full p-6 text-center">
         <motion.div
           initial={{ scale: 0.8, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
@@ -157,7 +157,7 @@ export function ChatForm({
   }
 
   return (
-    <div className="flex flex-col h-screen w-full md:max-w-none mx-auto bg-white dark:bg-slate-950 shadow-xl overflow-hidden relative">
+    <div className="flex flex-col h-full w-full md:max-w-none mx-auto bg-white dark:bg-slate-950 shadow-xl overflow-hidden relative">
       {/* Header */}
       <header className="bg-primary text-primary-foreground p-4 md:px-8 lg:px-64 xl:px-100 flex items-center justify-between shadow-md z-10">
         <div className="flex items-center space-x-3 md:space-x-4">
