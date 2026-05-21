@@ -18,16 +18,16 @@ export default async function CompanyPage({ params }: { params: Promise<{ compan
   return (
     <div className="min-h-screen p-8 max-w-4xl mx-auto">
       <header className="mb-12 text-center">
-        <h1 className="text-4xl font-bold text-primary mb-4">{companyName}</h1>
+        <h1 className="text-2xl font-bold text-primary mb-4">{companyName}</h1>
         <p className="text-muted-foreground">Escolha um dos nossos roteiros abaixo e garanta sua vaga!</p>
       </header>
 
       <div className="grid gap-6 md:grid-cols-2">
         {data?.map((d, i) => (
           <div key={i} className="bg-background border border-muted rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow">
-            <p className="mb-6">{d.nome || 'Sem título'}</p>
-            <h2 className="text-2xl font-semibold mb-2">{d.locais.map((l: any) => l.nome).join(' + ') || 'Locais indefinidos'}</h2>
-            <p className="text-sm text-muted-foreground mb-4">Data: {formatData(d.data_inicio) || 'Data indefinida'}</p>
+            <p className="mb-2">{d.nome || 'Sem título'}</p>
+            <h2 className="text-xl font-semibold mb-2">{d.locais.map((l: any) => l.nome).join(' + ') || 'Locais indefinidos'}</h2>
+            <p className="text-sm text-muted-foreground mb-6">Data: {formatData(d.data_inicio) || 'Data indefinida'}</p>
 
             <Link
               href={`/${company}/${d.id}`}
