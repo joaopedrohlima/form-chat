@@ -159,7 +159,7 @@ export function ChatForm({
   return (
     <div className="flex flex-col h-screen w-full md:max-w-none mx-auto bg-white dark:bg-slate-950 shadow-xl overflow-hidden relative">
       {/* Header */}
-      <header className="bg-primary text-primary-foreground p-4 md:px-8 lg:px-16 flex items-center justify-between shadow-md z-10">
+      <header className="bg-primary text-primary-foreground p-4 md:px-8 lg:px-64 xl:px-100 flex items-center justify-between shadow-md z-10">
         <div className="flex items-center space-x-3 md:space-x-4">
           <Link href={`/${company}`} className="hover:bg-white/10 p-2 rounded-full transition-colors">
             <ArrowLeft className="w-5 h-5" />
@@ -182,7 +182,7 @@ export function ChatForm({
       </header>
 
       {/* Área de Mensagens */}
-      <div className="flex-1 overflow-y-auto p-4 md:px-8 lg:px-16 no-scrollbar bg-slate-50 dark:bg-slate-900">
+      <div className="flex-1 overflow-y-auto p-4 md:px-8 lg:px-64 xl:px-100 no-scrollbar bg-slate-50 dark:bg-slate-900">
         <AnimatePresence initial={false}>
           {messages.map((msg) => (
             <ChatBubble key={msg.id} message={msg.text} isBot={msg.isBot} />
