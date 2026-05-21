@@ -68,9 +68,8 @@ export const formQuestions: Question[] = [
     text: 'Como você prefere realizar o pagamento?',
     type: 'select',
     options: [
-      { value: 'pix', label: 'PIX (À vista)' },
+      { value: 'pix', label: 'PIX' },
       { value: 'cartao_credito', label: 'Cartão de Crédito' },
-      { value: 'boleto', label: 'Boleto Bancário' },
     ],
   },
   {

@@ -1,4 +1,6 @@
 import Link from 'next/link'
+import { supabase } from '@/lib/supabase'
+import { formatData } from '@/lib/formatters'
 
 export default async function CompanyPage({ params }: { params: Promise<{ company: string }> }) {
   const { company } = await params;
@@ -6,15 +8,12 @@ export default async function CompanyPage({ params }: { params: Promise<{ compan
   // TODO: Buscar dados da empresa pelo 'company' slug no banco de dados.
   const companyName = company === 'excursao-entre-irmaos' ? 'Excursão Entre Irmãos' : 'Empresa';
 
-  // TODO: Buscar as viagens (roteiros) disponíveis para esta empresa no banco de dados.
-  // Deixando espaço em branco para a sua implementação:
-  // const viagens = await buscarViagensDaEmpresa(company);
-  
-  // Placeholder temporário para visualização:
-  const viagens = [
-    { id: '123', titulo: 'Viagem para Campos do Jordão', data: '15/10/2026', descricao: 'Passeio inesquecível pelas montanhas.' },
-    { id: '456', titulo: 'Retiro Espiritual', data: '20/11/2026', descricao: 'Três dias de paz e comunhão.' }
-  ];
+  const { data, error } = await supabase
+    .from('roteiros')
+    .select('*, locais (*)')
+    .order('data_inicio', { ascending: true })
+    .order('ordem', { referencedTable: 'locais', ascending: true });
+  if (error) console.log(error);
 
   return (
     <div className="min-h-screen p-8 max-w-4xl mx-auto">
@@ -24,14 +23,14 @@ export default async function CompanyPage({ params }: { params: Promise<{ compan
       </header>
 
       <div className="grid gap-6 md:grid-cols-2">
-        {viagens.map((viagem) => (
-          <div key={viagem.id} className="bg-background border border-muted rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow">
-            <h2 className="text-2xl font-semibold mb-2">{viagem.titulo}</h2>
-            <p className="text-sm text-muted-foreground mb-4">Data: {viagem.data}</p>
-            <p className="mb-6">{viagem.descricao}</p>
-            
-            <Link 
-              href={`/${company}/${viagem.id}`}
+        {data?.map((d, i) => (
+          <div key={i} className="bg-background border border-muted rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow">
+            <p className="mb-6">{d.nome || 'Sem título'}</p>
+            <h2 className="text-2xl font-semibold mb-2">{d.locais.map((l: any) => l.nome).join(' + ') || 'Locais indefinidos'}</h2>
+            <p className="text-sm text-muted-foreground mb-4">Data: {formatData(d.data_inicio) || 'Data indefinida'}</p>
+
+            <Link
+              href={`/${company}/${d.id}`}
               className="inline-block w-full text-center bg-primary text-primary-foreground py-3 px-4 rounded-lg font-medium hover:opacity-90 transition-opacity"
             >
               Preencher Formulário
