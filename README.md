@@ -1,9 +1,3 @@
-
----
-
-# `README.md` — Form Chat
-
-```md
 # Form Chat
 
 Projeto de formulários em formato de conversa/chat, desenvolvido para proporcionar uma experiência mais dinâmica e interativa ao usuário.
@@ -30,7 +24,7 @@ Melhorar a experiência do usuário em formulários tradicionais, tornando o pre
 
 ## 📸 Preview
 
-Adicione aqui screenshots do projeto.
+![Chat](./public/screenshot-chat.png)
 
 ## 🛠️ Instalação
 
