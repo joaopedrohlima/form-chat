@@ -28,7 +28,7 @@ export const formQuestions: Question[] = [
   },
   {
     id: 'cpf',
-    text: 'Muito prazer! Qual é o seu CPF?',
+    text: 'Muito prazer! Qual é o seu CPF / RG?',
     type: 'text',
     placeholder: 'Apenas números, ex: 12345678900',
   },
