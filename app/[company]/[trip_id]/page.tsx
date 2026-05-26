@@ -10,16 +10,22 @@ export default async function TripPage({ params }: { params: Promise<{ company: 
     .eq('id', trip_id)
     .single();
 
+  const { data: paymentMethods } = await supabase
+    .from('metodos_pagamento')
+    .select('*')
+    .eq('roteiro_id', trip_id);
+
   const tripName = roteiro?.nome || undefined;
   const tripLocais = roteiro?.locais ? (roteiro.locais as any[]).map(l => l.nome).join(' + ') : undefined;
 
   return (
     <div className="h-dvh bg-slate-50 dark:bg-slate-900 overflow-hidden flex flex-col">
-      <ChatForm 
-        company={company} 
-        tripId={trip_id} 
+      <ChatForm
+        company={company}
+        tripId={trip_id}
         tripName={tripName}
         tripLocais={tripLocais}
+        paymentMethods={paymentMethods || []}
       />
     </div>
   );

@@ -22,7 +22,7 @@ export function ChatBubble({ message, isBot = false, delay = 0 }: ChatBubbleProp
     >
       <div
         className={cn(
-          "max-w-[80%] rounded-2xl px-5 py-3 text-[15px] leading-relaxed shadow-sm",
+          "max-w-[80%] rounded-2xl px-5 py-3 text-[15px] leading-relaxed shadow-sm whitespace-pre-line",
           isBot
             ? "bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 rounded-bl-none border border-slate-100 dark:border-slate-700"
             : "bg-primary text-primary-foreground rounded-br-none"

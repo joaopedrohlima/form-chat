@@ -1,8 +1,12 @@
+import { supabase } from '@/lib/supabase';
+
 export type QuestionType = 'text' | 'date' | 'select' | 'number' | 'tel';
 
 export interface QuestionOption {
   value: string;
   label: string;
+  n_max_parcelas?: number;
+  valor_total?: number;
 }
 
 export interface Question {
@@ -62,15 +66,6 @@ export const formQuestions: Question[] = [
     text: 'Você possui algum problema de saúde que precisemos saber? Se sim, qual? (Caso não, digite "Não")',
     type: 'text',
     placeholder: 'Ex: Pressão alta, alergia, etc. ou "Não"',
-  },
-  {
-    id: 'metodo_pagamento',
-    text: 'Como você prefere realizar o pagamento?',
-    type: 'select',
-    options: [
-      { value: 'pix', label: 'PIX' },
-      { value: 'cartao_credito', label: 'Cartão de Crédito' },
-    ],
   },
   {
     id: 'n_parcelas',

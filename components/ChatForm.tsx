@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Send, CheckCircle2, Loader2, ArrowLeft } from "lucide-react";
 import Link from "next/link";
-import { formQuestions, Question } from "@/config/questions";
+import { formQuestions, Question, QuestionOption } from "@/config/questions";
 import { ChatBubble } from "./ChatBubble";
 import { supabase } from "@/lib/supabase";
 import { cn } from "@/lib/utils";
@@ -21,11 +21,21 @@ export function ChatForm({
   tripId,
   tripName,
   tripLocais,
+  paymentMethods,
 }: {
   company: string;
   tripId: string;
   tripName?: string;
   tripLocais?: string;
+  paymentMethods?: {
+    id: number;
+    nome: string;
+    value: string;
+    n_max_parcelas: number;
+    valor_total: number;
+    descricao?: string | null;
+    roteiro_id: number;
+  }[];
 }) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [answers, setAnswers] = useState<Record<string, string>>({});
@@ -38,20 +48,112 @@ export function ChatForm({
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const currentQuestion = formQuestions[currentQuestionIndex];
+  // Filter out any default/static payment or installment questions from the base config
+  const baseQuestions = useMemo(() => {
+    return formQuestions.filter(q => q.id !== 'metodo_pagamento' && q.id !== 'n_parcelas');
+  }, []);
+
+  // Compute the full list of questions dynamically
+  const questionsList = useMemo(() => {
+    const list = [...baseQuestions];
+
+    if (paymentMethods && paymentMethods.length > 0) {
+      const options: QuestionOption[] = paymentMethods.map(p => ({
+        value: p.value,
+        label: p.nome,
+        n_max_parcelas: p.n_max_parcelas,
+        valor_total: p.valor_total,
+      }));
+
+      const paymentDetailsText = paymentMethods.map(p => {
+        const valorFormatado = p.valor_total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+        if (p.n_max_parcelas > 1) {
+          const valorParcela = (p.valor_total / p.n_max_parcelas).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+          let desc = `- ${p.nome}: em até ${p.n_max_parcelas}x de ${valorParcela} (total ${valorFormatado})`;
+          if (p.descricao) {
+            desc += ` (${p.descricao})`;
+          }
+          return desc;
+        } else {
+          let desc = `- ${p.nome}: ${valorFormatado} à vista`;
+          if (p.descricao) {
+            desc += ` (${p.descricao})`;
+          }
+          return desc;
+        }
+      }).join('\n');
+
+      const questionText = `Como você prefere realizar o pagamento? Temos as seguintes opções disponíveis:\n\n${paymentDetailsText}`;
+
+      list.push({
+        id: 'metodo_pagamento',
+        text: questionText,
+        type: 'select',
+        options,
+      });
+
+      const selectedMethodValue = answers.metodo_pagamento;
+      const selectedMethod = paymentMethods.find(p => p.value === selectedMethodValue);
+
+      // Always include 'n_parcelas' in questionsList so indexes stay stable,
+      // but we will skip it in shouldSkipQuestion if not applicable.
+      list.push({
+        id: 'n_parcelas',
+        text: selectedMethod
+          ? `Em quantas parcelas você deseja pagar? (Máximo de ${selectedMethod.n_max_parcelas}x)`
+          : 'Em quantas parcelas você deseja pagar?',
+        type: 'number',
+        placeholder: selectedMethod
+          ? `Ex: 1, 2, ..., no máximo ${selectedMethod.n_max_parcelas}`
+          : 'Ex: 1, 2, 3...',
+      });
+    }
+
+    return list;
+  }, [baseQuestions, paymentMethods, answers.metodo_pagamento]);
+
+  // Determine if a question should be skipped
+  const shouldSkipQuestion = (questionId: string, currentAnswers: Record<string, string>) => {
+    if (questionId === 'n_parcelas') {
+      const selectedMethodValue = currentAnswers.metodo_pagamento;
+      const selectedMethod = paymentMethods?.find(p => p.value === selectedMethodValue);
+      // Skip if no payment method is selected or if the selected method is not installment-based (n_max_parcelas <= 1)
+      if (!selectedMethod || selectedMethod.n_max_parcelas <= 1) {
+        return true;
+      }
+    }
+    return false;
+  };
+
+  // Helper to find the next active (non-skipped) question index
+  const getNextActiveQuestionIndex = (startIndex: number, currentAnswers: Record<string, string>) => {
+    let index = startIndex;
+    while (index < questionsList.length) {
+      const question = questionsList[index];
+      if (!shouldSkipQuestion(question.id, currentAnswers)) {
+        return index;
+      }
+      index++;
+    }
+    return index;
+  };
+
+  const currentQuestion = questionsList[currentQuestionIndex];
 
   // Iniciar o chat
   useEffect(() => {
-    if (messages.length === 0 && formQuestions.length > 0) {
+    if (messages.length === 0 && questionsList.length > 0) {
+      const firstActiveIndex = getNextActiveQuestionIndex(0, {});
+      setCurrentQuestionIndex(firstActiveIndex);
       setMessages([
         {
-          id: `bot-q-${0}`,
-          text: formQuestions[0].text,
+          id: `bot-q-${firstActiveIndex}`,
+          text: questionsList[firstActiveIndex].text,
           isBot: true,
         },
       ]);
     }
-  }, [messages.length]);
+  }, [messages.length, questionsList]);
 
   // Scroll automático
   useEffect(() => {
@@ -63,6 +165,18 @@ export function ChatForm({
     if (!valueToSave && currentQuestion.type !== 'select') return;
     if (!valueToSave) return;
 
+    // Validation for max installments
+    if (currentQuestion.id === 'n_parcelas') {
+      const selectedMethodValue = answers.metodo_pagamento;
+      const selectedMethod = paymentMethods?.find(p => p.value === selectedMethodValue);
+      const maxParcelas = selectedMethod?.n_max_parcelas || 1;
+      const parsedVal = parseInt(valueToSave);
+      if (isNaN(parsedVal) || parsedVal < 1 || parsedVal > maxParcelas) {
+        alert(`Por favor, insira um número de parcelas entre 1 e ${maxParcelas}.`);
+        return;
+      }
+    }
+
     // 1. Adicionar resposta do usuário
     const userMsg: ChatMessage = {
       id: `user-a-${currentQuestionIndex}`,
@@ -72,20 +186,22 @@ export function ChatForm({
       isBot: false,
     };
 
+    const nextAnswers = { ...answers, [currentQuestion.id]: valueToSave };
+
     setMessages((prev) => [...prev, userMsg]);
-    setAnswers((prev) => ({ ...prev, [currentQuestion.id]: valueToSave }));
+    setAnswers(nextAnswers);
     setInputValue("");
 
     // 2. Próxima pergunta ou Revisão
-    const nextIndex = currentQuestionIndex + 1;
-    if (nextIndex < formQuestions.length) {
+    const nextIndex = getNextActiveQuestionIndex(currentQuestionIndex + 1, nextAnswers);
+    if (nextIndex < questionsList.length) {
       setCurrentQuestionIndex(nextIndex);
       setTimeout(() => {
         setMessages((prev) => [
           ...prev,
           {
             id: `bot-q-${nextIndex}`,
-            text: formQuestions[nextIndex].text,
+            text: questionsList[nextIndex].text,
             isBot: true,
           },
         ]);
@@ -198,16 +314,41 @@ export function ChatForm({
           >
             <h3 className="text-lg font-semibold mb-4 text-slate-800 dark:text-slate-100">Confira seus dados:</h3>
             <div className="space-y-3 mb-6">
-              {formQuestions.map((q) => (
-                <div key={q.id} className="border-b border-slate-100 dark:border-slate-700 pb-2 last:border-0">
-                  <span className="block text-xs text-slate-500 dark:text-slate-400 mb-1">{q.text}</span>
-                  <span className="font-medium text-slate-800 dark:text-slate-100">
-                    {q.type === 'select'
-                      ? q.options?.find(o => o.value === answers[q.id])?.label
-                      : answers[q.id]}
-                  </span>
-                </div>
-              ))}
+              {questionsList.map((q) => {
+                if (shouldSkipQuestion(q.id, answers)) return null;
+
+                // For payment options in the summary, display cleaner labels and detailed answers
+                let label = q.text;
+                let displayValue = answers[q.id];
+
+                if (q.id === 'metodo_pagamento') {
+                  label = 'Forma de pagamento';
+                  const selectedMethod = paymentMethods?.find(p => p.value === answers.metodo_pagamento);
+                  if (selectedMethod) {
+                    const formattedTotal = selectedMethod.valor_total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+                    displayValue = `${selectedMethod.nome} (Total: ${formattedTotal})`;
+                  }
+                } else if (q.id === 'n_parcelas') {
+                  label = 'Número de parcelas';
+                  const selectedMethod = paymentMethods?.find(p => p.value === answers.metodo_pagamento);
+                  if (selectedMethod && answers.n_parcelas) {
+                    const numParcelas = parseInt(answers.n_parcelas) || 1;
+                    const valorParcela = (selectedMethod.valor_total / numParcelas).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+                    displayValue = `${answers.n_parcelas}x de ${valorParcela}`;
+                  }
+                }
+
+                return (
+                  <div key={q.id} className="border-b border-slate-100 dark:border-slate-700 pb-2 last:border-0">
+                    <span className="block text-xs text-slate-500 dark:text-slate-400 mb-1">{label}</span>
+                    <span className="font-medium text-slate-800 dark:text-slate-100">
+                      {q.type === 'select' && q.id !== 'metodo_pagamento'
+                        ? q.options?.find(o => o.value === answers[q.id])?.label
+                        : displayValue}
+                    </span>
+                  </div>
+                );
+              })}
             </div>
             <p className="text-center text-sm mb-4 text-slate-600 dark:text-slate-400">Tudo certo com as informações?</p>
             <button
