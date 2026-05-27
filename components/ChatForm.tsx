@@ -230,6 +230,7 @@ export function ChatForm({
         congregacao: answers.congregacao,
         metodo_pagamento: answers.metodo_pagamento,
         nome: answers.nome,
+        cpf_novo: answers.cpf_novo
       };
 
       const { error } = await supabase

@@ -33,6 +33,21 @@ export const formQuestions: Question[] = [
     placeholder: 'Apenas números, ex: 12345678900',
   },
   {
+    id: 'cpf_novo',
+    text: 'Qual é o tipo do seu CPF / RG?',
+    type: 'select',
+    options: [
+      {
+        value: 'true',
+        label: 'Novo',
+      },
+      {
+        value: 'false',
+        label: 'Antigo',
+      }
+    ],
+  },
+  {
     id: 'data_nascimento',
     text: 'Qual é a sua data de nascimento?',
     type: 'date',
