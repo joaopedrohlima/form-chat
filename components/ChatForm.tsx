@@ -8,7 +8,7 @@ import { formQuestions, Question, QuestionOption } from "@/config/questions";
 import { ChatBubble } from "./ChatBubble";
 import { supabase } from "@/lib/supabase";
 import { cn } from "@/lib/utils";
-import Image from 'next/image';
+import Image from "next/image";
 
 interface ChatMessage {
   id: string;
@@ -50,7 +50,9 @@ export function ChatForm({
 
   // Filter out any default/static payment or installment questions from the base config
   const baseQuestions = useMemo(() => {
-    return formQuestions.filter(q => q.id !== 'metodo_pagamento' && q.id !== 'n_parcelas');
+    return formQuestions.filter(
+      (q) => q.id !== "metodo_pagamento" && q.id !== "n_parcelas",
+    );
   }, []);
 
   // Compute the full list of questions dynamically
@@ -58,54 +60,65 @@ export function ChatForm({
     const list = [...baseQuestions];
 
     if (paymentMethods && paymentMethods.length > 0) {
-      const options: QuestionOption[] = paymentMethods.map(p => ({
-        value: p.value,
-        label: p.nome,
-        n_max_parcelas: p.n_max_parcelas,
-        valor_total: p.valor_total,
-      }));
+      const options: QuestionOption[] = paymentMethods.map(
+        (p) => ({
+          value: String(p.id),
+          label: p.nome,
+          n_max_parcelas: p.n_max_parcelas,
+          valor_total: p.valor_total,
+        }),
+      );
 
-      const paymentDetailsText = paymentMethods.map(p => {
-        const valorFormatado = p.valor_total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-        if (p.n_max_parcelas > 1) {
-          const valorParcela = (p.valor_total / p.n_max_parcelas).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-          let desc = `- ${p.nome}: em até ${p.n_max_parcelas}x de ${valorParcela} (total ${valorFormatado})`;
-          if (p.descricao) {
-            desc += ` (${p.descricao})`;
+      const paymentDetailsText = paymentMethods
+        .map((p) => {
+          const valorFormatado = p.valor_total.toLocaleString("pt-BR", {
+            style: "currency",
+            currency: "BRL",
+          });
+          if (p.n_max_parcelas > 1) {
+            const valorParcela = (
+              p.valor_total / p.n_max_parcelas
+            ).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+            let desc = `- ${p.nome}: em até ${p.n_max_parcelas}x de ${valorParcela} (total ${valorFormatado})`;
+            if (p.descricao) {
+              desc += ` (${p.descricao})`;
+            }
+            return desc;
+          } else {
+            let desc = `- ${p.nome}: ${valorFormatado} à vista`;
+            if (p.descricao) {
+              desc += ` (${p.descricao})`;
+            }
+            return desc;
           }
-          return desc;
-        } else {
-          let desc = `- ${p.nome}: ${valorFormatado} à vista`;
-          if (p.descricao) {
-            desc += ` (${p.descricao})`;
-          }
-          return desc;
-        }
-      }).join('\n');
+        })
+        .join("\n");
 
       const questionText = `Como você prefere realizar o pagamento? Temos as seguintes opções disponíveis:\n\n${paymentDetailsText}`;
 
       list.push({
-        id: 'metodo_pagamento',
+        id: "metodo_pagamento",
         text: questionText,
-        type: 'select',
+        type: "select",
         options,
       });
 
       const selectedMethodValue = answers.metodo_pagamento;
-      const selectedMethod = paymentMethods.find(p => p.value === selectedMethodValue);
+      const selectedMethod = paymentMethods.find(
+        (p) => String(p.id) === selectedMethodValue,
+      );
 
       // Always include 'n_parcelas' in questionsList so indexes stay stable,
       // but we will skip it in shouldSkipQuestion if not applicable.
       list.push({
-        id: 'n_parcelas',
+        id: "n_parcelas",
         text: selectedMethod
           ? `Em quantas parcelas você deseja pagar? (Máximo de ${selectedMethod.n_max_parcelas}x)`
-          : 'Em quantas parcelas você deseja pagar?',
-        type: 'number',
+          : "Em quantas parcelas você deseja pagar?",
+        type: "number",
         placeholder: selectedMethod
           ? `Ex: 1, 2, ..., no máximo ${selectedMethod.n_max_parcelas}`
-          : 'Ex: 1, 2, 3...',
+          : "Ex: 1, 2, 3...",
       });
     }
 
@@ -113,10 +126,15 @@ export function ChatForm({
   }, [baseQuestions, paymentMethods, answers.metodo_pagamento]);
 
   // Determine if a question should be skipped
-  const shouldSkipQuestion = (questionId: string, currentAnswers: Record<string, string>) => {
-    if (questionId === 'n_parcelas') {
+  const shouldSkipQuestion = (
+    questionId: string,
+    currentAnswers: Record<string, string>,
+  ) => {
+    if (questionId === "n_parcelas") {
       const selectedMethodValue = currentAnswers.metodo_pagamento;
-      const selectedMethod = paymentMethods?.find(p => p.value === selectedMethodValue);
+      const selectedMethod = paymentMethods?.find(
+        (p) => String(p.id) === selectedMethodValue,
+      );
       // Skip if no payment method is selected or if the selected method is not installment-based (n_max_parcelas <= 1)
       if (!selectedMethod || selectedMethod.n_max_parcelas <= 1) {
         return true;
@@ -126,7 +144,10 @@ export function ChatForm({
   };
 
   // Helper to find the next active (non-skipped) question index
-  const getNextActiveQuestionIndex = (startIndex: number, currentAnswers: Record<string, string>) => {
+  const getNextActiveQuestionIndex = (
+    startIndex: number,
+    currentAnswers: Record<string, string>,
+  ) => {
     let index = startIndex;
     while (index < questionsList.length) {
       const question = questionsList[index];
@@ -162,17 +183,21 @@ export function ChatForm({
 
   const handleSend = (selectedValue?: string) => {
     const valueToSave = selectedValue ?? inputValue.trim();
-    if (!valueToSave && currentQuestion.type !== 'select') return;
+    if (!valueToSave && currentQuestion.type !== "select") return;
     if (!valueToSave) return;
 
     // Validation for max installments
-    if (currentQuestion.id === 'n_parcelas') {
+    if (currentQuestion.id === "n_parcelas") {
       const selectedMethodValue = answers.metodo_pagamento;
-      const selectedMethod = paymentMethods?.find(p => p.value === selectedMethodValue);
+      const selectedMethod = paymentMethods?.find(
+        (p) => String(p.id) === selectedMethodValue,
+      );
       const maxParcelas = selectedMethod?.n_max_parcelas || 1;
       const parsedVal = parseInt(valueToSave);
       if (isNaN(parsedVal) || parsedVal < 1 || parsedVal > maxParcelas) {
-        alert(`Por favor, insira um número de parcelas entre 1 e ${maxParcelas}.`);
+        alert(
+          `Por favor, insira um número de parcelas entre 1 e ${maxParcelas}.`,
+        );
         return;
       }
     }
@@ -180,9 +205,11 @@ export function ChatForm({
     // 1. Adicionar resposta do usuário
     const userMsg: ChatMessage = {
       id: `user-a-${currentQuestionIndex}`,
-      text: currentQuestion.type === 'select'
-        ? currentQuestion.options?.find(o => o.value === valueToSave)?.label || valueToSave
-        : valueToSave,
+      text:
+        currentQuestion.type === "select"
+          ? currentQuestion.options?.find((o) => o.value === valueToSave)
+              ?.label || valueToSave
+          : valueToSave,
       isBot: false,
     };
 
@@ -193,7 +220,10 @@ export function ChatForm({
     setInputValue("");
 
     // 2. Próxima pergunta ou Revisão
-    const nextIndex = getNextActiveQuestionIndex(currentQuestionIndex + 1, nextAnswers);
+    const nextIndex = getNextActiveQuestionIndex(
+      currentQuestionIndex + 1,
+      nextAnswers,
+    );
     if (nextIndex < questionsList.length) {
       setCurrentQuestionIndex(nextIndex);
       setTimeout(() => {
@@ -220,29 +250,31 @@ export function ChatForm({
       // O Supabase gera o ID automaticamente se estiver configurado assim na tabela.
       const payload = {
         roteiro_id: tripId,
-        cpf: answers.cpf ? answers.cpf.replace(/\D/g, '') : '',
+        cpf: answers.cpf ? answers.cpf.replace(/\D/g, "") : "",
         data_nascimento: answers.data_nascimento,
-        telefone: answers.telefone ? answers.telefone.replace(/\D/g, '') : '',
+        telefone: answers.telefone ? answers.telefone.replace(/\D/g, "") : "",
         n_parcelas: parseInt(answers.n_parcelas) || 1,
         embarque: answers.embarque,
         problema_saude: answers.problema_saude,
         cidade: answers.cidade,
         congregacao: answers.congregacao,
-        metodo_pagamento: answers.metodo_pagamento,
+        metodo_pagamento: answers.metodo_pagamento
+          ? parseInt(answers.metodo_pagamento, 10)
+          : null,
         nome: answers.nome,
-        cpf_novo: answers.cpf_novo
+        cpf_novo: answers.cpf_novo,
       };
 
-      const { error } = await supabase
-        .from('reservas')
-        .insert([payload]);
+      const { error } = await supabase.from("reservas").insert([payload]);
 
       if (error) throw error;
 
       setIsSuccess(true);
     } catch (error) {
       console.error("Erro ao salvar reserva:", error);
-      alert("Ocorreu um erro ao enviar sua reserva. Por favor, tente novamente.");
+      alert(
+        "Ocorreu um erro ao enviar sua reserva. Por favor, tente novamente.",
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -259,7 +291,8 @@ export function ChatForm({
           <CheckCircle2 className="w-24 h-24 text-green-500 mx-auto mb-6" />
           <h2 className="text-3xl font-bold mb-4">Reserva Concluída!</h2>
           <p className="text-slate-600 dark:text-slate-400 mb-8 max-w-md mx-auto">
-            Seus dados foram enviados com sucesso. Entraremos em contato em breve com mais detalhes sobre a viagem.
+            Seus dados foram enviados com sucesso. Entraremos em contato em
+            breve com mais detalhes sobre a viagem.
           </p>
           <Link
             href={`/${company}`}
@@ -278,13 +311,22 @@ export function ChatForm({
       {/* Header */}
       <header className="bg-primary text-primary-foreground p-4 md:px-8 lg:px-64 xl:px-100 flex items-center justify-between shadow-md z-10">
         <div className="flex items-center space-x-3 md:space-x-4">
-          <Link href={`/${company}`} className="hover:bg-white/10 p-2 rounded-full transition-colors">
+          <Link
+            href={`/${company}`}
+            className="hover:bg-white/10 p-2 rounded-full transition-colors"
+          >
             <ArrowLeft className="w-5 h-5" />
           </Link>
 
           {/* Logo Placeholder */}
           <div className="w-10 h-10 md:w-12 md:h-12 bg-white/10 rounded-full flex items-center justify-center border border-white/20 select-none flex-shrink-0 overflow-hidden">
-            <Image src="/logo-excursao-entre-irmaos.jpg" alt="Logo" width={50} height={50} className="object-cover" />
+            <Image
+              src="/logo-excursao-entre-irmaos.jpg"
+              alt="Logo"
+              width={50}
+              height={50}
+              className="object-cover"
+            />
           </div>
 
           <div>
@@ -313,7 +355,9 @@ export function ChatForm({
             animate={{ opacity: 1, y: 0 }}
             className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl p-6 mt-6 shadow-sm mb-4 max-w-2xl md:mx-auto w-full"
           >
-            <h3 className="text-lg font-semibold mb-4 text-slate-800 dark:text-slate-100">Confira seus dados:</h3>
+            <h3 className="text-lg font-semibold mb-4 text-slate-800 dark:text-slate-100">
+              Confira seus dados:
+            </h3>
             <div className="space-y-3 mb-6">
               {questionsList.map((q) => {
                 if (shouldSkipQuestion(q.id, answers)) return null;
@@ -322,36 +366,57 @@ export function ChatForm({
                 let label = q.text;
                 let displayValue = answers[q.id];
 
-                if (q.id === 'metodo_pagamento') {
-                  label = 'Forma de pagamento';
-                  const selectedMethod = paymentMethods?.find(p => p.value === answers.metodo_pagamento);
+                if (q.id === "metodo_pagamento") {
+                  label = "Forma de pagamento";
+                  const selectedMethod = paymentMethods?.find(
+                    (p) => String(p.id) === answers.metodo_pagamento,
+                  );
                   if (selectedMethod) {
-                    const formattedTotal = selectedMethod.valor_total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+                    const formattedTotal =
+                      selectedMethod.valor_total.toLocaleString("pt-BR", {
+                        style: "currency",
+                        currency: "BRL",
+                      });
                     displayValue = `${selectedMethod.nome} (Total: ${formattedTotal})`;
                   }
-                } else if (q.id === 'n_parcelas') {
-                  label = 'Número de parcelas';
-                  const selectedMethod = paymentMethods?.find(p => p.value === answers.metodo_pagamento);
+                } else if (q.id === "n_parcelas") {
+                  label = "Número de parcelas";
+                  const selectedMethod = paymentMethods?.find(
+                    (p) => String(p.id) === answers.metodo_pagamento,
+                  );
                   if (selectedMethod && answers.n_parcelas) {
                     const numParcelas = parseInt(answers.n_parcelas) || 1;
-                    const valorParcela = (selectedMethod.valor_total / numParcelas).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+                    const valorParcela = (
+                      selectedMethod.valor_total / numParcelas
+                    ).toLocaleString("pt-BR", {
+                      style: "currency",
+                      currency: "BRL",
+                    });
                     displayValue = `${answers.n_parcelas}x de ${valorParcela}`;
                   }
                 }
 
                 return (
-                  <div key={q.id} className="border-b border-slate-100 dark:border-slate-700 pb-2 last:border-0">
-                    <span className="block text-xs text-slate-500 dark:text-slate-400 mb-1">{label}</span>
+                  <div
+                    key={q.id}
+                    className="border-b border-slate-100 dark:border-slate-700 pb-2 last:border-0"
+                  >
+                    <span className="block text-xs text-slate-500 dark:text-slate-400 mb-1">
+                      {label}
+                    </span>
                     <span className="font-medium text-slate-800 dark:text-slate-100">
-                      {q.type === 'select' && q.id !== 'metodo_pagamento'
-                        ? q.options?.find(o => o.value === answers[q.id])?.label
+                      {q.type === "select" && q.id !== "metodo_pagamento"
+                        ? q.options?.find((o) => o.value === answers[q.id])
+                            ?.label
                         : displayValue}
                     </span>
                   </div>
                 );
               })}
             </div>
-            <p className="text-center text-sm mb-4 text-slate-600 dark:text-slate-400">Tudo certo com as informações?</p>
+            <p className="text-center text-sm mb-4 text-slate-600 dark:text-slate-400">
+              Tudo certo com as informações?
+            </p>
             <button
               onClick={handleSubmitFinal}
               disabled={isSubmitting}
@@ -375,7 +440,7 @@ export function ChatForm({
       {!isReviewing && currentQuestion && (
         <div className="p-4 md:px-8 lg:px-16 bg-white dark:bg-slate-950 border-t border-slate-100 dark:border-slate-800">
           <div className="flex items-center space-x-2">
-            {currentQuestion.type === 'select' ? (
+            {currentQuestion.type === "select" ? (
               <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-2 max-w-2xl md:mx-auto w-full">
                 {currentQuestion.options?.map((opt) => (
                   <button
@@ -400,7 +465,9 @@ export function ChatForm({
               >
                 <input
                   type={currentQuestion.type}
-                  placeholder={currentQuestion.placeholder || "Digite sua resposta..."}
+                  placeholder={
+                    currentQuestion.placeholder || "Digite sua resposta..."
+                  }
                   value={inputValue}
                   onChange={(e) => setInputValue(e.target.value)}
                   className="flex-1 bg-transparent border-none py-3 outline-none text-slate-800 dark:text-slate-100 placeholder:text-slate-400"
